@@ -13,39 +13,81 @@ import {
 	INodeParameters,
 	INodePropertyOptions,
 	INodeTypeDescription,
+	INodeTypeNameVersion,
 	IRunExecutionData,
 	IRun,
 	IRunData,
 	ITaskData,
+	ITelemetrySettings,
 	WorkflowExecuteMode,
 } from 'n8n-workflow';
 
-import {
-	PaintStyle,
-} from 'jsplumb';
-
 declare module 'jsplumb' {
+	interface PaintStyle {
+		stroke?: string;
+		fill?: string;
+		strokeWidth?: number;
+		outlineStroke?: string;
+		outlineWidth?: number;
+	}
+
 	interface Anchor {
 		lastReturnValue: number[];
 	}
 
 	interface Connection {
+		__meta?: {
+			sourceNodeName: string,
+			sourceOutputIndex: number,
+			targetNodeName: string,
+			targetOutputIndex: number,
+		};
+		canvas?: HTMLElement;
+		connector?: {
+			setTargetEndpoint: (endpoint: Endpoint) => void;
+			resetTargetEndpoint: () => void;
+			bounds: {
+				minX: number;
+				maxX: number;
+				minY: number;
+				maxY: number;
+			}
+		};
+
 		// bind(event: string, (connection: Connection): void;): void; // tslint:disable-line:no-any
-		bind(event: string, callback: Function): void; // tslint:disable-line:no-any
+		bind(event: string, callback: Function): void;
 		removeOverlay(name: string): void;
 		removeOverlays(): void;
 		setParameter(name: string, value: any): void; // tslint:disable-line:no-any
 		setPaintStyle(arg0: PaintStyle): void;
 		addOverlay(arg0: any[]): void; // tslint:disable-line:no-any
 		setConnector(arg0: any[]): void; // tslint:disable-line:no-any
+		getUuids(): [string, string];
 	}
 
 	interface Endpoint {
+		endpoint: any; // tslint:disable-line:no-any
+		elementId: string;
+		__meta?: {
+			nodeName: string,
+			nodeId: string,
+			index: number,
+			totalEndpoints: number;
+		};
+		getUuid(): string;
 		getOverlay(name: string): any; // tslint:disable-line:no-any
+		repaint(params?: object): void;
+	}
+
+	interface N8nPlusEndpoint extends Endpoint {
+		setSuccessOutput(message: string): void;
+		clearSuccessOutput(): void;
 	}
 
 	interface Overlay {
 		setVisible(visible: boolean): void;
+		setLocation(location: number): void;
+		canvas?: HTMLElement;
 	}
 
 	interface OnConnectionBindInfo {
@@ -64,18 +106,15 @@ export interface IEndpointOptions {
 	dragProxy?: any; // tslint:disable-line:no-any
 	endpoint?: string;
 	endpointStyle?: object;
+	endpointHoverStyle?: object;
 	isSource?: boolean;
 	isTarget?: boolean;
 	maxConnections?: number;
 	overlays?: any; // tslint:disable-line:no-any
 	parameters?: any; // tslint:disable-line:no-any
 	uuid?: string;
-}
-
-export interface IConnectionsUi {
-	[key: string]: {
-		[key: string]: IEndpointOptions;
-	};
+	enabled?: boolean;
+	cssClass?: string;
 }
 
 export interface IUpdateInformation {
@@ -93,20 +132,16 @@ export interface INodeUpdatePropertiesInformation {
 	};
 }
 
-export type XYPositon = [number, number];
+export type XYPosition = [number, number];
 
 export type MessageType = 'success' | 'warning' | 'info' | 'error';
 
 export interface INodeUi extends INode {
-	position: XYPositon;
+	position: XYPosition;
 	color?: string;
 	notes?: string;
 	issues?: INodeIssues;
-	_jsPlumb?: {
-		endpoints?: {
-			[key: string]: IEndpointOptions[];
-		};
-	};
+	name: string;
 }
 
 export interface INodeTypesMaxCount {
@@ -128,31 +163,32 @@ export interface IRestApi {
 	getPastExecutions(filter: object, limit: number, lastId?: string | number, firstId?: string | number): Promise<IExecutionsListResponse>;
 	stopCurrentExecution(executionId: string): Promise<IExecutionsStopData>;
 	makeRestApiRequest(method: string, endpoint: string, data?: any): Promise<any>; // tslint:disable-line:no-any
-	getSettings(): Promise<IN8nUISettings>;
-	getNodeTypes(): Promise<INodeTypeDescription[]>;
-	getNodesInformation(nodeList: string[]): Promise<INodeTypeDescription[]>;
-	getNodeParameterOptions(nodeType: string, methodName: string, currentNodeParameters: INodeParameters, credentials?: INodeCredentials): Promise<INodePropertyOptions[]>;
+	getNodeTranslationHeaders(): Promise<INodeTranslationHeaders>;
+	getNodeTypes(onlyLatest?: boolean): Promise<INodeTypeDescription[]>;
+	getNodesInformation(nodeInfos: INodeTypeNameVersion[]): Promise<INodeTypeDescription[]>;
+	getNodeParameterOptions(nodeTypeAndVersion: INodeTypeNameVersion, path: string, methodName: string, currentNodeParameters: INodeParameters, credentials?: INodeCredentials): Promise<INodePropertyOptions[]>;
 	removeTestWebhook(workflowId: string): Promise<boolean>;
 	runWorkflow(runData: IStartRunData): Promise<IExecutionPushResponse>;
-	createNewWorkflow(sendData: IWorkflowData): Promise<IWorkflowDb>;
+	createNewWorkflow(sendData: IWorkflowDataUpdate): Promise<IWorkflowDb>;
 	updateWorkflow(id: string, data: IWorkflowDataUpdate): Promise<IWorkflowDb>;
 	deleteWorkflow(name: string): Promise<void>;
 	getWorkflow(id: string): Promise<IWorkflowDb>;
 	getWorkflows(filter?: object): Promise<IWorkflowShortResponse[]>;
 	getWorkflowFromUrl(url: string): Promise<IWorkflowDb>;
-	createNewCredentials(sendData: ICredentialsDecrypted): Promise<ICredentialsResponse>;
-	deleteCredentials(id: string): Promise<void>;
-	updateCredentials(id: string, data: ICredentialsDecrypted): Promise<ICredentialsResponse>;
-	getAllCredentials(filter?: object): Promise<ICredentialsResponse[]>;
-	getCredentials(id: string, includeData?: boolean): Promise<ICredentialsDecryptedResponse | ICredentialsResponse | undefined>;
-	getCredentialTypes(): Promise<ICredentialType[]>;
 	getExecution(id: string): Promise<IExecutionResponse>;
 	deleteExecutions(sendData: IExecutionDeleteFilter): Promise<void>;
 	retryExecution(id: string, loadWorkflow?: boolean): Promise<boolean>;
 	getTimezones(): Promise<IDataObject>;
-	oAuth1CredentialAuthorize(sendData: ICredentialsResponse): Promise<string>;
-	oAuth2CredentialAuthorize(sendData: ICredentialsResponse): Promise<string>;
-	oAuth2Callback(code: string, state: string): Promise<string>;
+	getBinaryBufferString(dataPath: string): Promise<string>;
+}
+
+export interface INodeTranslationHeaders {
+	data: {
+		[key: string]: {
+			displayName: string;
+			description: string;
+		},
+	};
 }
 
 export interface IBinaryDisplayData {
@@ -161,13 +197,6 @@ export interface IBinaryDisplayData {
 	node: string;
 	outputIndex: number;
 	runIndex: number;
-}
-
-export interface ICredentialsCreatedEvent {
-	data: ICredentialsDecryptedResponse;
-	options: {
-		closeDialog: boolean,
-	};
 }
 
 export interface IStartRunData {
@@ -202,20 +231,32 @@ export interface IVariableSelectorOption {
 
 // Simple version of n8n-workflow.Workflow
 export interface IWorkflowData {
-	id?: string;
+	id?: string | number;
 	name?: string;
 	active?: boolean;
 	nodes: INode[];
 	connections: IConnections;
 	settings?: IWorkflowSettings;
+	tags?: string[];
 }
 
 export interface IWorkflowDataUpdate {
+	id?: string | number;
 	name?: string;
 	nodes?: INode[];
 	connections?: IConnections;
 	settings?: IWorkflowSettings;
 	active?: boolean;
+	tags?: ITag[] | string[]; // string[] when store or requested, ITag[] from API response
+}
+
+export interface IWorkflowTemplate {
+	id: string;
+	name: string;
+	workflow: {
+		nodes: INodeUi[];
+		connections: IConnections;
+	};
 }
 
 // Almost identical to cli.Interfaces.ts
@@ -228,6 +269,7 @@ export interface IWorkflowDb {
 	nodes: INodeUi[];
 	connections: IConnections;
 	settings?: IWorkflowSettings;
+	tags?: ITag[] | string[]; // string[] when store or requested, ITag[] from API response
 }
 
 // Identical to cli.Interfaces.ts
@@ -237,6 +279,7 @@ export interface IWorkflowShortResponse {
 	active: boolean;
 	createdAt: number | string;
 	updatedAt: number | string;
+	tags: ITag[];
 }
 
 
@@ -250,7 +293,7 @@ export interface IActivationError {
 }
 
 export interface ICredentialsResponse extends ICredentialsEncrypted {
-	id?: string;
+	id: string;
 	createdAt: number | string;
 	updatedAt: number | string;
 }
@@ -311,6 +354,7 @@ export interface IExecutionShortResponse {
 export interface IExecutionsListResponse {
 	count: number;
 	results: IExecutionsSummary[];
+	estimated: boolean;
 }
 
 export interface IExecutionsCurrentSummaryExtended {
@@ -338,6 +382,7 @@ export interface IExecutionsSummary {
 	finished?: boolean;
 	retryOf?: string;
 	retrySuccessId?: string;
+	waitTill?: Date;
 	startedAt: Date;
 	stoppedAt?: Date;
 	workflowId: string;
@@ -350,12 +395,45 @@ export interface IExecutionDeleteFilter {
 	ids?: string[];
 }
 
-export interface IPushData {
-	data: IPushDataExecutionFinished | IPushDataNodeExecuteAfter | IPushDataNodeExecuteBefore | IPushDataTestWebhook;
-	type: IPushDataType;
-}
+export type IPushDataType = IPushData['type'];
 
-export type IPushDataType = 'executionFinished' | 'executionStarted' | 'nodeExecuteAfter' | 'nodeExecuteBefore' | 'testWebhookDeleted' | 'testWebhookReceived';
+export type IPushData =
+	| PushDataExecutionFinished
+	| PushDataExecutionStarted
+	| PushDataExecuteAfter
+	| PushDataExecuteBefore
+	| PushDataConsoleMessage
+	| PushDataTestWebhook;
+
+type PushDataExecutionFinished = {
+	data: IPushDataExecutionFinished;
+	type: 'executionFinished';
+};
+
+type PushDataExecutionStarted = {
+	data: IPushDataExecutionStarted;
+	type: 'executionStarted';
+};
+
+type PushDataExecuteAfter = {
+	data: IPushDataNodeExecuteAfter;
+	type: 'nodeExecuteAfter';
+};
+
+type PushDataExecuteBefore = {
+	data: IPushDataNodeExecuteBefore;
+	type: 'nodeExecuteBefore';
+};
+
+type PushDataConsoleMessage = {
+	data: IPushDataConsoleMessage;
+	type: 'sendConsoleMessage';
+};
+
+type PushDataTestWebhook = {
+	data: IPushDataTestWebhook;
+	type: 'testWebhookDeleted' | 'testWebhookReceived';
+};
 
 export interface IPushDataExecutionStarted {
 	executionId: string;
@@ -392,6 +470,48 @@ export interface IPushDataTestWebhook {
 	workflowId: string;
 }
 
+export interface IPushDataConsoleMessage {
+	source: string;
+	messages: string[];
+}
+
+export interface IVersionNotificationSettings {
+	enabled: boolean;
+	endpoint: string;
+	infoUrl: string;
+}
+
+export type IPersonalizationSurveyKeys = 'codingSkill' | 'companyIndustry' | 'companySize' | 'otherCompanyIndustry' | 'otherWorkArea' | 'workArea';
+
+export type IPersonalizationSurveyAnswers = {
+	codingSkill: string | null;
+	companyIndustry: string[];
+	companySize: string | null;
+	otherCompanyIndustry: string | null;
+	otherWorkArea: string | null;
+	workArea: string[] | string | null;
+};
+
+export interface IPersonalizationSurvey {
+	answers?: IPersonalizationSurveyAnswers;
+	shouldShow: boolean;
+}
+
+export interface IN8nPrompts {
+	message: string;
+	title: string;
+	showContactPrompt: boolean;
+	showValueSurvey: boolean;
+}
+
+export interface IN8nValueSurveyData {
+	[key: string]: string;
+}
+
+export interface IN8nPromptResponse {
+	updated: boolean;
+}
+
 export interface IN8nUISettings {
 	endpointWebhook: string;
 	endpointWebhookTest: string;
@@ -410,6 +530,11 @@ export interface IN8nUISettings {
 	n8nMetadata?: {
 		[key: string]: string | number | undefined;
 	};
+	versionNotifications: IVersionNotificationSettings;
+	instanceId: string;
+	personalizationSurvey?: IPersonalizationSurvey;
+	telemetry: ITelemetrySettings;
+	defaultLocale: string;
 }
 
 export interface IWorkflowSettings extends IWorkflowSettingsWorkflow {
@@ -444,4 +569,181 @@ export interface ILinkMenuItemProperties {
 	icon: string;
 	href: string;
 	newWindow?: boolean;
+}
+
+export interface ISubcategoryItemProps {
+	subcategory: string;
+	description: string;
+}
+
+export interface INodeItemProps {
+	subcategory: string;
+	nodeType: INodeTypeDescription;
+}
+
+export interface ICategoryItemProps {
+	expanded: boolean;
+}
+
+export interface INodeCreateElement {
+	type: 'node' | 'category' | 'subcategory';
+	category: string;
+	key: string;
+	includedByTrigger?: boolean;
+	includedByRegular?: boolean;
+	properties: ISubcategoryItemProps | INodeItemProps | ICategoryItemProps;
+}
+
+export interface ICategoriesWithNodes {
+	[category: string]: {
+		[subcategory: string]: {
+			regularCount: number;
+			triggerCount: number;
+			nodes: INodeCreateElement[];
+		};
+	};
+}
+
+export interface ITag {
+	id: string;
+	name: string;
+	usageCount?: number;
+}
+
+export interface ITagRow {
+	tag?: ITag;
+	usage?: string;
+	create?: boolean;
+	disable?: boolean;
+	update?: boolean;
+	delete?: boolean;
+}
+
+export interface IVersion {
+	name: string;
+	nodes: IVersionNode[];
+	createdAt: string;
+	description: string;
+	documentationUrl: string;
+	hasBreakingChange: boolean;
+	hasSecurityFix: boolean;
+	hasSecurityIssue: boolean;
+	securityIssueFixVersion: string;
+}
+
+export interface IVersionNode {
+	name: string;
+	displayName: string;
+	icon: string;
+	defaults: INodeParameters;
+	iconData: {
+		type: string;
+		icon?: string;
+		fileBuffer?: string;
+	};
+}
+export interface IRootState {
+	activeExecutions: IExecutionsCurrentSummaryExtended[];
+	activeWorkflows: string[];
+	activeActions: string[];
+	activeNode: string | null;
+	baseUrl: string;
+	credentialTextRenderKeys: { nodeType: string; credentialType: string; } | null;
+	defaultLocale: string;
+	endpointWebhook: string;
+	endpointWebhookTest: string;
+	executionId: string | null;
+	executingNode: string | null;
+	executionWaitingForWebhook: boolean;
+	pushConnectionActive: boolean;
+	saveDataErrorExecution: string;
+	saveDataSuccessExecution: string;
+	saveManualExecutions: boolean;
+	timezone: string;
+	stateIsDirty: boolean;
+	executionTimeout: number;
+	maxExecutionTimeout: number;
+	versionCli: string;
+	oauthCallbackUrls: object;
+	n8nMetadata: object;
+	workflowExecutionData: IExecutionResponse | null;
+	lastSelectedNode: string | null;
+	lastSelectedNodeOutputIndex: number | null;
+	nodeIndex: Array<string | null>;
+	nodeTypes: INodeTypeDescription[];
+	nodeViewOffsetPosition: XYPosition;
+	nodeViewMoveInProgress: boolean;
+	selectedNodes: INodeUi[];
+	sessionId: string;
+	urlBaseWebhook: string;
+	workflow: IWorkflowDb;
+	sidebarMenuItems: IMenuItem[];
+	instanceId: string;
+	telemetry: ITelemetrySettings | null;
+}
+
+export interface ICredentialTypeMap {
+	[name: string]: ICredentialType;
+}
+
+export interface ICredentialMap {
+	[name: string]: ICredentialsResponse;
+}
+
+export interface ICredentialsState {
+	credentialTypes: ICredentialTypeMap;
+	credentials: ICredentialMap;
+}
+
+export interface ITagsState {
+	tags: { [id: string]: ITag };
+	isLoading: boolean;
+	fetchedAll: boolean;
+	fetchedUsageCount: boolean;
+}
+
+export interface IModalState {
+	open: boolean;
+	mode?: string | null;
+	activeId?: string | null;
+}
+
+export interface IUiState {
+	sidebarMenuCollapsed: boolean;
+	modalStack: string[];
+	modals: {
+		[key: string]: IModalState;
+	};
+	isPageLoading: boolean;
+}
+
+export interface ISettingsState {
+	settings: IN8nUISettings;
+	promptsData: IN8nPrompts;
+}
+
+export interface IVersionsState {
+	versionNotificationSettings: IVersionNotificationSettings;
+	nextVersions: IVersion[];
+	currentVersion: IVersion | undefined;
+}
+
+export interface IWorkflowsState {
+}
+
+export interface IRestApiContext {
+	baseUrl: string;
+	sessionId: string;
+}
+
+export interface IZoomConfig {
+	scale: number;
+	offset: XYPosition;
+}
+
+export interface IBounds {
+	minX: number;
+	minY: number;
+	maxX: number;
+	maxY: number;
 }
