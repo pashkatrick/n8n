@@ -1,15 +1,14 @@
-import { INodeProperties } from 'n8n-workflow';
+import type { INodeProperties } from 'n8n-workflow';
 
 export const quoteOperations: INodeProperties[] = [
 	{
 		displayName: 'Operation',
 		name: 'operation',
 		type: 'options',
+		noDataExpression: true,
 		displayOptions: {
 			show: {
-				resource: [
-					'quote',
-				],
+				resource: ['quote'],
 			},
 		},
 		options: [
@@ -17,37 +16,41 @@ export const quoteOperations: INodeProperties[] = [
 				name: 'Create',
 				value: 'create',
 				description: 'Create a new quote',
+				action: 'Create a quote',
 			},
 			{
 				name: 'Delete',
 				value: 'delete',
 				description: 'Delete a quote',
+				action: 'Delete a quote',
 			},
 			{
 				name: 'Email',
 				value: 'email',
 				description: 'Email an quote',
+				action: 'Email a quote',
 			},
 			{
 				name: 'Get',
 				value: 'get',
 				description: 'Get data of a quote',
+				action: 'Get a quote',
 			},
 			{
-				name: 'Get All',
+				name: 'Get Many',
 				value: 'getAll',
-				description: 'Get data of all quotes',
+				description: 'Get data of many quotes',
+				action: 'Get many quotes',
 			},
 		],
 		default: 'create',
-		description: 'The operation to perform.',
 	},
 ];
 
 export const quoteFields: INodeProperties[] = [
-/* -------------------------------------------------------------------------- */
-/*                                 quote:create                               */
-/* -------------------------------------------------------------------------- */
+	/* -------------------------------------------------------------------------- */
+	/*                                 quote:create                               */
+	/* -------------------------------------------------------------------------- */
 	{
 		displayName: 'Additional Fields',
 		name: 'additionalFields',
@@ -56,19 +59,17 @@ export const quoteFields: INodeProperties[] = [
 		default: {},
 		displayOptions: {
 			show: {
-				operation: [
-					'create',
-				],
-				resource: [
-					'quote',
-				],
+				operation: ['create'],
+				resource: ['quote'],
 			},
 		},
 		options: [
 			{
-				displayName: 'Client',
+				displayName: 'Client Name or ID',
 				name: 'client',
 				type: 'options',
+				description:
+					'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>',
 				typeOptions: {
 					loadOptionsMethod: 'getClients',
 				},
@@ -114,6 +115,7 @@ export const quoteFields: INodeProperties[] = [
 				displayName: 'Email',
 				name: 'email',
 				type: 'string',
+				placeholder: 'name@email.com',
 				default: '',
 			},
 			{
@@ -184,18 +186,12 @@ export const quoteFields: INodeProperties[] = [
 				displayName: 'Private Notes',
 				name: 'privateNotes',
 				type: 'string',
-				typeOptions: {
-					alwaysOpenEditWindow: true,
-				},
 				default: '',
 			},
 			{
 				displayName: 'Public Notes',
 				name: 'publicNotes',
 				type: 'string',
-				typeOptions: {
-					alwaysOpenEditWindow: true,
-				},
 				default: '',
 			},
 			{
@@ -234,12 +230,8 @@ export const quoteFields: INodeProperties[] = [
 		},
 		displayOptions: {
 			show: {
-				resource: [
-					'quote',
-				],
-				operation: [
-					'create',
-				],
+				resource: ['quote'],
+				operation: ['create'],
 			},
 		},
 		default: {},
@@ -258,17 +250,11 @@ export const quoteFields: INodeProperties[] = [
 						displayName: 'Description',
 						name: 'description',
 						type: 'string',
-						typeOptions: {
-							alwaysOpenEditWindow: true,
-						},
 						default: '',
 					},
 					{
 						displayName: 'Service',
 						name: 'service',
-						typeOptions: {
-							alwaysOpenEditWindow: true,
-						},
 						type: 'string',
 						default: '',
 					},
@@ -309,9 +295,9 @@ export const quoteFields: INodeProperties[] = [
 			},
 		],
 	},
-/* -------------------------------------------------------------------------- */
-/*                                 quote:delete                               */
-/* -------------------------------------------------------------------------- */
+	/* -------------------------------------------------------------------------- */
+	/*                                 quote:delete                               */
+	/* -------------------------------------------------------------------------- */
 	{
 		displayName: 'Quote ID',
 		name: 'quoteId',
@@ -320,18 +306,14 @@ export const quoteFields: INodeProperties[] = [
 		required: true,
 		displayOptions: {
 			show: {
-				resource: [
-					'quote',
-				],
-				operation: [
-					'delete',
-				],
+				resource: ['quote'],
+				operation: ['delete'],
 			},
 		},
 	},
-/* -------------------------------------------------------------------------- */
-/*                                  quote:email                               */
-/* -------------------------------------------------------------------------- */
+	/* -------------------------------------------------------------------------- */
+	/*                                  quote:email                               */
+	/* -------------------------------------------------------------------------- */
 	{
 		displayName: 'Quote ID',
 		name: 'quoteId',
@@ -340,18 +322,14 @@ export const quoteFields: INodeProperties[] = [
 		required: true,
 		displayOptions: {
 			show: {
-				resource: [
-					'quote',
-				],
-				operation: [
-					'email',
-				],
+				resource: ['quote'],
+				operation: ['email'],
 			},
 		},
 	},
-/* -------------------------------------------------------------------------- */
-/*                                  quote:get                                 */
-/* -------------------------------------------------------------------------- */
+	/* -------------------------------------------------------------------------- */
+	/*                                  quote:get                                 */
+	/* -------------------------------------------------------------------------- */
 	{
 		displayName: 'Quote ID',
 		name: 'quoteId',
@@ -360,12 +338,8 @@ export const quoteFields: INodeProperties[] = [
 		required: true,
 		displayOptions: {
 			show: {
-				resource: [
-					'quote',
-				],
-				operation: [
-					'get',
-				],
+				resource: ['quote'],
+				operation: ['get'],
 			},
 		},
 	},
@@ -377,12 +351,8 @@ export const quoteFields: INodeProperties[] = [
 		default: {},
 		displayOptions: {
 			show: {
-				operation: [
-					'get',
-				],
-				resource: [
-					'quote',
-				],
+				operation: ['get'],
+				resource: ['quote'],
 			},
 		},
 		options: [
@@ -400,25 +370,21 @@ export const quoteFields: INodeProperties[] = [
 			},
 		],
 	},
-/* -------------------------------------------------------------------------- */
-/*                                  quote:getAll                              */
-/* -------------------------------------------------------------------------- */
+	/* -------------------------------------------------------------------------- */
+	/*                                  quote:getAll                              */
+	/* -------------------------------------------------------------------------- */
 	{
 		displayName: 'Return All',
 		name: 'returnAll',
 		type: 'boolean',
 		displayOptions: {
 			show: {
-				resource: [
-					'quote',
-				],
-				operation: [
-					'getAll',
-				],
+				resource: ['quote'],
+				operation: ['getAll'],
 			},
 		},
 		default: false,
-		description: 'If all results should be returned or only up to a given limit.',
+		description: 'Whether to return all results or only up to a given limit',
 	},
 	{
 		displayName: 'Limit',
@@ -426,15 +392,9 @@ export const quoteFields: INodeProperties[] = [
 		type: 'number',
 		displayOptions: {
 			show: {
-				resource: [
-					'quote',
-				],
-				operation: [
-					'getAll',
-				],
-				returnAll: [
-					false,
-				],
+				resource: ['quote'],
+				operation: ['getAll'],
+				returnAll: [false],
 			},
 		},
 		typeOptions: {
@@ -442,7 +402,7 @@ export const quoteFields: INodeProperties[] = [
 			maxValue: 60,
 		},
 		default: 50,
-		description: 'How many results to return.',
+		description: 'Max number of results to return',
 	},
 	{
 		displayName: 'Options',
@@ -452,12 +412,8 @@ export const quoteFields: INodeProperties[] = [
 		default: {},
 		displayOptions: {
 			show: {
-				operation: [
-					'getAll',
-				],
-				resource: [
-					'quote',
-				],
+				operation: ['getAll'],
+				resource: ['quote'],
 			},
 		},
 		options: [

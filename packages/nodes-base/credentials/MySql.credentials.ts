@@ -1,13 +1,12 @@
-import {
-	ICredentialType,
-	INodeProperties,
-} from 'n8n-workflow';
-
+import type { ICredentialType, INodeProperties } from 'n8n-workflow';
 
 export class MySql implements ICredentialType {
 	name = 'mySql';
+
 	displayName = 'MySQL';
+
 	documentationUrl = 'mySql';
+
 	properties: INodeProperties[] = [
 		{
 			displayName: 'Host',
@@ -47,7 +46,8 @@ export class MySql implements ICredentialType {
 			name: 'connectTimeout',
 			type: 'number',
 			default: 10000,
-			description: 'The milliseconds before a timeout occurs during the initial connection to the MySQL server.',
+			description:
+				'The milliseconds before a timeout occurs during the initial connection to the MySQL server',
 		},
 		{
 			displayName: 'SSL',
@@ -59,14 +59,11 @@ export class MySql implements ICredentialType {
 			displayName: 'CA Certificate',
 			name: 'caCertificate',
 			typeOptions: {
-				alwaysOpenEditWindow: true,
 				password: true,
 			},
 			displayOptions: {
 				show: {
-					ssl: [
-						true,
-					],
+					ssl: [true],
 				},
 			},
 			type: 'string',
@@ -76,14 +73,11 @@ export class MySql implements ICredentialType {
 			displayName: 'Client Private Key',
 			name: 'clientPrivateKey',
 			typeOptions: {
-				alwaysOpenEditWindow: true,
 				password: true,
 			},
 			displayOptions: {
 				show: {
-					ssl: [
-						true,
-					],
+					ssl: [true],
 				},
 			},
 			type: 'string',
@@ -93,14 +87,11 @@ export class MySql implements ICredentialType {
 			displayName: 'Client Certificate',
 			name: 'clientCertificate',
 			typeOptions: {
-				alwaysOpenEditWindow: true,
 				password: true,
 			},
 			displayOptions: {
 				show: {
-					ssl: [
-						true,
-					],
+					ssl: [true],
 				},
 			},
 			type: 'string',

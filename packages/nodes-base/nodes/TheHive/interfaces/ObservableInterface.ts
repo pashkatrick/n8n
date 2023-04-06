@@ -1,6 +1,4 @@
-import {
-	TLP
-} from './AlertInterface';
+import type { TLP } from './AlertInterface';
 
 export enum ObservableStatus {
 	OK = 'Ok',

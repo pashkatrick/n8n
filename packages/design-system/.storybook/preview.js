@@ -1,10 +1,16 @@
 import './font-awesome-icons';
 import './storybook.scss';
 
+import ElementUI from 'element-ui';
 import lang from 'element-ui/lib/locale/lang/en';
 import locale from 'element-ui/lib/locale';
 
+import designSystemComponents from '../src/plugins/n8nComponents';
+
 import Vue from 'vue';
+
+Vue.use(ElementUI);
+Vue.use(designSystemComponents);
 
 locale.use(lang);
 
@@ -59,7 +65,7 @@ export const parameters = {
 	},
 	options: {
 		storySort: {
-			order: ['Docs', 'Styleguide', 'Atoms'],
+			order: ['Docs', 'Styleguide', 'Atoms', 'Modules'],
 		},
 	},
 };

@@ -1,22 +1,14 @@
-import {
+import type {
 	IExecuteFunctions,
-} from 'n8n-core';
-
-import {
-	IDataObject,
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
-	NodeOperationError,
 } from 'n8n-workflow';
+import { NodeOperationError } from 'n8n-workflow';
 
-import {
-	pgInsert,
-	pgQuery,
-	pgUpdate,
-} from '../Postgres/Postgres.node.functions';
+import { pgInsert, pgQuery, pgUpdate } from '../Postgres/v1/genericFunctions';
 
-import * as pgPromise from 'pg-promise';
+import pgPromise from 'pg-promise';
 
 export class TimescaleDb implements INodeType {
 	description: INodeTypeDescription = {
@@ -38,6 +30,7 @@ export class TimescaleDb implements INodeType {
 			},
 		],
 		properties: [
+			// eslint-disable-next-line n8n-nodes-base/node-param-operation-without-no-data-expression
 			{
 				displayName: 'Operation',
 				name: 'operation',
@@ -47,20 +40,22 @@ export class TimescaleDb implements INodeType {
 						name: 'Execute Query',
 						value: 'executeQuery',
 						description: 'Execute an SQL query',
+						action: 'Execute a SQL query',
 					},
 					{
 						name: 'Insert',
 						value: 'insert',
 						description: 'Insert rows in database',
+						action: 'Insert rows in database',
 					},
 					{
 						name: 'Update',
 						value: 'update',
 						description: 'Update rows in database',
+						action: 'Update rows in database',
 					},
 				],
 				default: 'insert',
-				description: 'The operation to perform.',
 			},
 
 			// ----------------------------------
@@ -70,9 +65,6 @@ export class TimescaleDb implements INodeType {
 				displayName: 'Query',
 				name: 'query',
 				type: 'string',
-				typeOptions: {
-					alwaysOpenEditWindow: true,
-				},
 				displayOptions: {
 					show: {
 						operation: ['executeQuery'],
@@ -81,7 +73,8 @@ export class TimescaleDb implements INodeType {
 				default: '',
 				placeholder: 'SELECT id, name FROM product WHERE quantity > $1 AND price <= $2',
 				required: true,
-				description: 'The SQL query to execute. You can use n8n expressions or $1 and $2 in conjunction with query parameters.',
+				description:
+					'The SQL query to execute. You can use n8n expressions or $1 and $2 in conjunction with query parameters.',
 			},
 
 			// ----------------------------------
@@ -93,9 +86,7 @@ export class TimescaleDb implements INodeType {
 				type: 'string',
 				displayOptions: {
 					show: {
-						operation: [
-							'insert',
-						],
+						operation: ['insert'],
 					},
 				},
 				default: 'public',
@@ -108,14 +99,12 @@ export class TimescaleDb implements INodeType {
 				type: 'string',
 				displayOptions: {
 					show: {
-						operation: [
-							'insert',
-						],
+						operation: ['insert'],
 					},
 				},
 				default: '',
 				required: true,
-				description: 'Name of the table in which to insert data to.',
+				description: 'Name of the table in which to insert data to',
 			},
 			{
 				displayName: 'Columns',
@@ -123,15 +112,13 @@ export class TimescaleDb implements INodeType {
 				type: 'string',
 				displayOptions: {
 					show: {
-						operation: [
-							'insert',
-						],
+						operation: ['insert'],
 					},
 				},
 				default: '',
 				placeholder: 'id,name,description',
 				description:
-					'Comma separated list of the properties which should used as columns for the new rows.',
+					'Comma-separated list of the properties which should used as columns for the new rows',
 			},
 
 			// ----------------------------------
@@ -143,9 +130,7 @@ export class TimescaleDb implements INodeType {
 				type: 'string',
 				displayOptions: {
 					show: {
-						operation: [
-							'update',
-						],
+						operation: ['update'],
 					},
 				},
 				default: 'public',
@@ -158,9 +143,7 @@ export class TimescaleDb implements INodeType {
 				type: 'string',
 				displayOptions: {
 					show: {
-						operation: [
-							'update',
-						],
+						operation: ['update'],
 					},
 				},
 				default: '',
@@ -173,13 +156,12 @@ export class TimescaleDb implements INodeType {
 				type: 'string',
 				displayOptions: {
 					show: {
-						operation: [
-							'update',
-						],
+						operation: ['update'],
 					},
 				},
 				default: 'id',
 				required: true,
+				// eslint-disable-next-line n8n-nodes-base/node-param-description-miscased-id
 				description:
 					'Name of the property which decides which rows in the database should be updated. Normally that would be "id".',
 			},
@@ -189,15 +171,13 @@ export class TimescaleDb implements INodeType {
 				type: 'string',
 				displayOptions: {
 					show: {
-						operation: [
-							'update',
-						],
+						operation: ['update'],
 					},
 				},
 				default: '',
 				placeholder: 'name,description',
 				description:
-					'Comma separated list of the properties which should used as columns for rows to update.',
+					'Comma-separated list of the properties which should used as columns for rows to update',
 			},
 			// ----------------------------------
 			//         insert,update
@@ -212,7 +192,7 @@ export class TimescaleDb implements INodeType {
 					},
 				},
 				default: '*',
-				description: 'Comma separated list of the fields that the operation will return',
+				description: 'Comma-separated list of the fields that the operation will return',
 			},
 			// ----------------------------------
 			//         additional fields
@@ -235,7 +215,7 @@ export class TimescaleDb implements INodeType {
 								description: 'Execute each query independently',
 							},
 							{
-								name: 'Multiple queries',
+								name: 'Multiple Queries',
 								value: 'multiple',
 								description: '<b>Default</b>. Sends multiple queries at once to database.',
 							},
@@ -246,7 +226,8 @@ export class TimescaleDb implements INodeType {
 							},
 						],
 						default: 'multiple',
-						description: 'The way queries should be sent to database. Can be used in conjunction with <b>Continue on Fail</b>. See <a href="https://docs.n8n.io/nodes/n8n-nodes-base.timescaleDb/">the docs</a> for more examples',
+						description:
+							'The way queries should be sent to database. Can be used in conjunction with <b>Continue on Fail</b>. See <a href="https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.timescaledb/">the docs</a> for more examples',
 					},
 					{
 						displayName: 'Query Parameters',
@@ -254,14 +235,13 @@ export class TimescaleDb implements INodeType {
 						type: 'string',
 						displayOptions: {
 							show: {
-								'/operation': [
-									'executeQuery',
-								],
+								'/operation': ['executeQuery'],
 							},
 						},
 						default: '',
 						placeholder: 'quantity,price',
-						description: 'Comma separated list of properties which should be used as query parameters.',
+						description:
+							'Comma-separated list of properties which should be used as query parameters',
 					},
 				],
 			},
@@ -270,10 +250,6 @@ export class TimescaleDb implements INodeType {
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const credentials = await this.getCredentials('timescaleDb');
-
-		if (credentials === undefined) {
-			throw new NodeOperationError(this.getNode(), 'No credentials got returned!');
-		}
 
 		const pgp = pgPromise();
 
@@ -292,14 +268,20 @@ export class TimescaleDb implements INodeType {
 		let returnItems = [];
 
 		const items = this.getInputData();
-		const operation = this.getNodeParameter('operation', 0) as string;
+		const operation = this.getNodeParameter('operation', 0);
 
 		if (operation === 'executeQuery') {
 			// ----------------------------------
 			//         executeQuery
 			// ----------------------------------
 
-			const queryResult = await pgQuery(this.getNodeParameter, pgp, db, items, this.continueOnFail());
+			const queryResult = await pgQuery(
+				this.getNodeParameter,
+				pgp,
+				db,
+				items,
+				this.continueOnFail(),
+			);
 
 			returnItems = this.helpers.returnJsonArray(queryResult);
 		} else if (operation === 'insert') {
@@ -307,7 +289,13 @@ export class TimescaleDb implements INodeType {
 			//         insert
 			// ----------------------------------
 
-			const insertData = await pgInsert(this.getNodeParameter, pgp, db, items, this.continueOnFail());
+			const insertData = await pgInsert(
+				this.getNodeParameter,
+				pgp,
+				db,
+				items,
+				this.continueOnFail(),
+			);
 
 			// Add the id to the data
 			for (let i = 0; i < insertData.length; i++) {
@@ -320,17 +308,25 @@ export class TimescaleDb implements INodeType {
 			//         update
 			// ----------------------------------
 
-			const updateItems = await pgUpdate(this.getNodeParameter, pgp, db, items, this.continueOnFail());
+			const updateItems = await pgUpdate(
+				this.getNodeParameter,
+				pgp,
+				db,
+				items,
+				this.continueOnFail(),
+			);
 
 			returnItems = this.helpers.returnJsonArray(updateItems);
-
 		} else {
-			await pgp.end();
-			throw new NodeOperationError(this.getNode(), `The operation "${operation}" is not supported!`);
+			pgp.end();
+			throw new NodeOperationError(
+				this.getNode(),
+				`The operation "${operation}" is not supported!`,
+			);
 		}
 
 		// Close the connection
-		await pgp.end();
+		pgp.end();
 
 		return this.prepareOutputData(returnItems);
 	}

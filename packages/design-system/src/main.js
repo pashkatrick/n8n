@@ -1,10 +1,4 @@
-import * as components from './components';
+import * as locale from './locale';
+import designSystemComponents from './plugins/n8nComponents';
 
-for (const key in components) {
-	const component = components[key];
-	component.install = function (Vue) {
-		Vue.component(component.name, component);
-	};
-}
-
-export * from './components';
+export { locale, designSystemComponents };
